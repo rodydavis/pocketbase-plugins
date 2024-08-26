@@ -1,0 +1,3 @@
+[submodule "third_party/pocketbase"]
+	path = third_party/pocketbase
+	url = https://github.com/rodydavis/pocketbase
