@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -15,6 +13,9 @@ import (
 	"github.com/pocketbase/pocketbase/plugins/ghupdate"
 	"github.com/pocketbase/pocketbase/plugins/jsvm"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
+	"github.com/rodydavis/pocketbase_extensions/ai"
+	"github.com/rodydavis/pocketbase_extensions/hooks"
+	"github.com/rodydavis/pocketbase_extensions/plugins"
 
 	sqlite_vec "github.com/asg017/sqlite-vec-go-bindings/cgo"
 )
@@ -23,7 +24,16 @@ func main() {
 	app := pocketbase.New()
 
 	sqlite_vec.Auto()
-	core.DbCgoExtensions = []string{}
+	core.DBExtensions = []string{}
+
+	client, err := ai.CreateClient()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer client.Close()
+
+	plugins.VectorStore(app)
+	plugins.FullTextSearch(app, "posts")
 
 	var hooksDir string = os.Getenv("PB_HOOKS_DIR")
 	var hooksWatch bool = true
@@ -95,17 +105,6 @@ func main() {
 	app.OnAfterBootstrap().PreAdd(func(e *core.BootstrapEvent) error {
 		app.Dao().ModelQueryTimeout = time.Duration(queryTimeout) * time.Second
 
-		type Info struct {
-			Version string `db:"version" json:"version"`
-		}
-
-		items := []Info{}
-		err := app.DB().NewQuery("select vec_version() as version").All(&items)
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Printf("vec_version=%s\n", items)
-
 		return nil
 	})
 
@@ -115,12 +114,8 @@ func main() {
 			e.HttpContext.Response().Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 			return nil
 		})
-		count := 0
-		e.Router.GET("/test", func(c echo.Context) error {
-			count += 1
-			app.Logger().Info("Count: " + fmt.Sprint(count))
-			return c.JSON(http.StatusOK, map[string]string{"count": fmt.Sprint(count)})
-		}, defaultCacheHeaders)
+		ai.EmbedderRoutes(client, e, app)
+		hooks.InitVectorHooks(client, app)
 		return nil
 	})
 
