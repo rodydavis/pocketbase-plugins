@@ -8,18 +8,27 @@ import (
 	"github.com/pocketbase/pocketbase/tools/types"
 )
 
+var StunServers = []string{
+	"stun:stun1.l.google.com:19302",
+	"stun:stun2.l.google.com:19302",
+}
+
+var (
+	AuthCollection             = "users"
+	IceServerCollection        = "ice_servers"
+	CallsCollection            = "calls"
+	OfferCandidatesCollection  = "offer_candidates"
+	AnswerCandidatesCollection = "answer_candidates"
+)
+
 func Init(app *pocketbase.PocketBase) error {
 	app.OnAfterBootstrap().Add(func(e *core.BootstrapEvent) error {
-		iceServer, err := createIceServerCollection(app, "ice_servers")
+		iceServer, err := createIceServerCollection(app, IceServerCollection)
 		if err != nil {
 			return err
 		}
 		if iceServer != nil {
-			stunServers := []string{
-				"stun:stun1.l.google.com:19302",
-				"stun:stun2.l.google.com:19302",
-			}
-			for _, server := range stunServers {
+			for _, server := range StunServers {
 				record := models.NewRecord(iceServer)
 				record.Set("url", server)
 				if err := app.Dao().SaveRecord(record); err != nil {
@@ -27,15 +36,15 @@ func Init(app *pocketbase.PocketBase) error {
 				}
 			}
 		}
-		_, err = createCallsServerCollection(app, "calls", "users")
+		_, err = createCallsServerCollection(app, CallsCollection, AuthCollection)
 		if err != nil {
 			return err
 		}
-		_, err = createCandidatesServerCollection(app, "offer_candidates", "calls")
+		_, err = createCandidatesServerCollection(app, OfferCandidatesCollection, CallsCollection)
 		if err != nil {
 			return err
 		}
-		_, err = createCandidatesServerCollection(app, "answer_candidates", "calls")
+		_, err = createCandidatesServerCollection(app, AnswerCandidatesCollection, CallsCollection)
 		if err != nil {
 			return err
 		}
