@@ -15,12 +15,18 @@ import (
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 	full_text_search "github.com/rodydavis/pocketbase_extensions/full-text-search"
 	vector_search "github.com/rodydavis/pocketbase_extensions/vector-search"
+	web_rtc "github.com/rodydavis/pocketbase_extensions/web-rtc"
 )
 
 func main() {
 	app := pocketbase.New()
 
-	err := vector_search.Init(app, "vectors")
+	err := web_rtc.Init(app)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = vector_search.Init(app, "vectors")
 	if err != nil {
 		log.Fatal(err)
 	}

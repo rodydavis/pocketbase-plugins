@@ -56,11 +56,11 @@ func Init(app *pocketbase.PocketBase, collections ...string) error {
 		}
 		return nil
 	})
-	app.OnCollectionAfterDeleteRequest().Add(func(e *core.CollectionDeleteEvent) error {
+	app.OnCollectionAfterDeleteRequest().PreAdd(func(e *core.CollectionDeleteEvent) error {
 		target := e.Collection.Name
 		for _, col := range collections {
 			if col == target {
-				err := deleteCollectionFts(app, target)
+				err := deleteCollection(app, target)
 				if err != nil {
 					app.Logger().Error(fmt.Sprint(err))
 					return err
@@ -134,7 +134,6 @@ func createCollectionFts(app *pocketbase.PocketBase, target string) error {
 	}
 	fields := collectionFields(collection, "id")
 	exists, _ := checkIfTableExists(app, target+"_fts")
-	app.Logger().Info("exists: " + fmt.Sprint(exists))
 
 	if !exists {
 		tbl := "`" + target + "`"
@@ -196,16 +195,17 @@ func createCollectionFts(app *pocketbase.PocketBase, target string) error {
 	return nil
 }
 
-func deleteCollectionFts(app *pocketbase.PocketBase, target string) error {
-	var stmt strings.Builder
-	stmt.WriteString("DROP TABLE IF EXISTS {:table_name}")
-
-	app.Logger().Info(stmt.String())
-	if _, err := app.Dao().DB().NewQuery(stmt.String()).Bind(dbx.Params{"table_name": target}).Execute(); err != nil {
-		app.Logger().Error(fmt.Sprint(err))
+func deleteCollection(app *pocketbase.PocketBase, target string) error {
+	if _, err := app.Dao().DB().
+		NewQuery("DELETE FROM " + target + "_fts;").
+		Execute(); err != nil {
 		return err
 	}
-
+	if _, err := app.Dao().DB().
+		NewQuery("DROP TABLE IF EXISTS " + target + "_fts;").
+		Execute(); err != nil {
+		return err
+	}
 	return nil
 }
 

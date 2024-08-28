@@ -37,7 +37,6 @@ func Init(app *pocketbase.PocketBase, collections ...string) error {
 		}
 		return nil
 	})
-
 	app.OnModelAfterCreate().Add(func(e *core.ModelEvent) error {
 		tbl := e.Model.TableName()
 		for _, target := range collections {
@@ -68,6 +67,19 @@ func Init(app *pocketbase.PocketBase, collections ...string) error {
 			if tbl == target {
 				err := modelDelete(app, target, e)
 				if err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+	app.OnCollectionAfterDeleteRequest().Add(func(e *core.CollectionDeleteEvent) error {
+		target := e.Collection.Name
+		for _, col := range collections {
+			if col == target {
+				err := deleteCollection(app, target)
+				if err != nil {
+					app.Logger().Error(fmt.Sprint(err))
 					return err
 				}
 			}
@@ -149,6 +161,20 @@ func Init(app *pocketbase.PocketBase, collections ...string) error {
 		})
 		return nil
 	})
+	return nil
+}
+
+func deleteCollection(app *pocketbase.PocketBase, target string) error {
+	if _, err := app.Dao().DB().
+		NewQuery("DELETE FROM " + target + "_embeddings;").
+		Execute(); err != nil {
+		return err
+	}
+	if _, err := app.Dao().DB().
+		NewQuery("DROP TABLE IF EXISTS " + target + "_embeddings;").
+		Execute(); err != nil {
+		return err
+	}
 	return nil
 }
 
