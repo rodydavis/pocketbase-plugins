@@ -1,4 +1,4 @@
-package plugins
+package full_text_search
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 )
 
 // https://www.sqlite.org/fts5.html#external_content_tables
-func FullTextSearch(app *pocketbase.PocketBase, collections ...string) {
+func Init(app *pocketbase.PocketBase, collections ...string) error {
 	app.OnAfterBootstrap().Add(func(e *core.BootstrapEvent) error {
 		for _, target := range collections {
 			err := createCollectionFts(app, target)
@@ -70,63 +70,60 @@ func FullTextSearch(app *pocketbase.PocketBase, collections ...string) {
 		return nil
 	})
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
-		for _, target := range collections {
+		group := e.Router.Group("/api/collections/:collectionIdOrName/records", apis.ActivityLogger(app))
+		group.GET("/full-text-search", func(c echo.Context) error {
+			target := c.PathParam("collectionIdOrName")
 			if _, err := app.Dao().FindCollectionByNameOrId(target); err != nil {
 				app.Logger().Error(fmt.Sprint(err))
 				return err
 			}
 			tbl := target // collection.TableName()
-			group := e.Router.Group("/api/collections/"+target+"/records", apis.ActivityLogger(app))
-			group.GET("/fts", func(c echo.Context) error {
-				q := c.QueryParam("search")
-				if q == "" {
-					return c.NoContent(204)
-				}
+			q := c.QueryParam("search")
+			if q == "" {
+				return c.NoContent(204)
+			}
+			var query strings.Builder
+			query.WriteString("SELECT * ") // rank as '@rank'
+			query.WriteString("FROM " + tbl + "_fts ")
+			// query.WriteString("INNER JOIN " + tbl + " tbl ON tbl.id = " + tbl + "_fts._id ")
+			query.WriteString("WHERE " + tbl + "_fts MATCH {:q} ")
+			query.WriteString("ORDER BY rank;")
 
-				// go syncCollection(app, target)
+			results := []dbx.NullStringMap{}
+			err := app.Dao().DB().
+				NewQuery(query.String()).
+				Bind(dbx.Params{"q": q}).
+				All(&results)
+			if err != nil {
+				app.Logger().Error(fmt.Sprint(err))
+				return err
+			}
+			app.Logger().Info(fmt.Sprint(results))
 
-				var query strings.Builder
-				query.WriteString("SELECT * ") // rank as '@rank'
-				query.WriteString("FROM " + tbl + "_fts ")
-				// query.WriteString("INNER JOIN " + tbl + " tbl ON tbl.id = " + tbl + "_fts._id ")
-				query.WriteString("WHERE " + tbl + "_fts MATCH {:q} ")
-				query.WriteString("ORDER BY rank;")
-
-				results := []dbx.NullStringMap{}
-				err := app.Dao().DB().
-					NewQuery(query.String()).
-					Bind(dbx.Params{"q": q}).
-					All(&results)
-				if err != nil {
-					app.Logger().Error(fmt.Sprint(err))
-					return err
-				}
-				app.Logger().Info(fmt.Sprint(results))
-
-				c.Response().Header().Set(echo.HeaderContentType, "application/json")
-				items := []map[string]any{}
-				for _, result := range results {
-					m := make(map[string]interface{})
-					for key := range result {
-						val := result[key]
-						value, err := val.Value()
-						if err != nil || !val.Valid {
-							m[key] = nil
-						} else {
-							m[key] = value
-						}
+			c.Response().Header().Set(echo.HeaderContentType, "application/json")
+			items := []map[string]any{}
+			for _, result := range results {
+				m := make(map[string]interface{})
+				for key := range result {
+					val := result[key]
+					value, err := val.Value()
+					if err != nil || !val.Valid {
+						m[key] = nil
+					} else {
+						m[key] = value
 					}
-					items = append(items, m)
 				}
+				items = append(items, m)
+			}
 
-				// TODO: Paging result
-				return c.JSON(200, items)
+			// TODO: Paging result
+			return c.JSON(200, items)
 
-			})
-
-		}
+		})
 		return nil
 	})
+
+	return nil
 }
 
 func createCollectionFts(app *pocketbase.PocketBase, target string) error {

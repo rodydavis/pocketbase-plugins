@@ -13,27 +13,22 @@ import (
 	"github.com/pocketbase/pocketbase/plugins/ghupdate"
 	"github.com/pocketbase/pocketbase/plugins/jsvm"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
-	"github.com/rodydavis/pocketbase_extensions/ai"
-	"github.com/rodydavis/pocketbase_extensions/hooks"
-	"github.com/rodydavis/pocketbase_extensions/plugins"
-
-	sqlite_vec "github.com/asg017/sqlite-vec-go-bindings/cgo"
+	full_text_search "github.com/rodydavis/pocketbase_extensions/full-text-search"
+	vector_search "github.com/rodydavis/pocketbase_extensions/vector-search"
 )
 
 func main() {
 	app := pocketbase.New()
 
-	sqlite_vec.Auto()
-	core.DBExtensions = []string{}
-
-	client, err := ai.CreateClient()
+	err := vector_search.Init(app, "vectors")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Close()
 
-	plugins.VectorStore(app)
-	plugins.FullTextSearch(app, "posts")
+	err = full_text_search.Init(app, "posts", "vectors")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	var hooksDir string = os.Getenv("PB_HOOKS_DIR")
 	var hooksWatch bool = true
@@ -114,8 +109,6 @@ func main() {
 			e.HttpContext.Response().Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 			return nil
 		})
-		ai.EmbedderRoutes(client, e, app)
-		hooks.InitVectorHooks(client, app)
 		return nil
 	})
 
@@ -135,13 +128,13 @@ func crossOriginHeaders(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-func defaultCacheHeaders(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		// c.Response().Header().Set("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400")
-		c.Response().Header().Set("Cache-Control", "public, max-age=1, stale-while-revalidate=59")
-		if err := next(c); err != nil {
-			c.Error(err)
-		}
-		return nil
-	}
-}
+// func defaultCacheHeaders(next echo.HandlerFunc) echo.HandlerFunc {
+// 	return func(c echo.Context) error {
+// 		// c.Response().Header().Set("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400")
+// 		c.Response().Header().Set("Cache-Control", "public, max-age=1, stale-while-revalidate=59")
+// 		if err := next(c); err != nil {
+// 			c.Error(err)
+// 		}
+// 		return nil
+// 	}
+// }
