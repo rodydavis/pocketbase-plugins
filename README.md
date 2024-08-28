@@ -1,5 +1,11 @@
 # PocketBase Plugins
 
+Running the example:
+
+```bash
+go run --tags "fts5" . serve
+```
+
 ## ENV Config
 
 ### Getting Started
@@ -20,7 +26,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-    
+
     if err := app.Start(); err != nil {
 		log.Fatal(err)
 	}
