@@ -22,12 +22,19 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = vector_search.Init(app, vector_search.VectorCollection{Name: "vectors"})
+	vectorCollections := []vector_search.VectorCollection{
+		{Name: "vectors"},
+	}
+	err = vector_search.Init(app, vectorCollections...)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = full_text_search.Init(app, "posts", "vectors")
+	fullTextSearchCollections := []string{"posts"}
+	for _, col := range vectorCollections {
+		fullTextSearchCollections = append(fullTextSearchCollections, col.Name)
+	}
+	err = full_text_search.Init(app, fullTextSearchCollections...)
 	if err != nil {
 		log.Fatal(err)
 	}
