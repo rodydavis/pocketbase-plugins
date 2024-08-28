@@ -1,4 +1,4 @@
-module github.com/rodydavis/pocketbase_extensions
+module github.com/rodydavis/pocketbase-plugins
 
 go 1.23.0
 

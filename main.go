@@ -2,10 +2,10 @@ package main
 
 import (
 	"github.com/pocketbase/pocketbase"
-	env_config "github.com/rodydavis/pocketbase_extensions/env-config"
-	full_text_search "github.com/rodydavis/pocketbase_extensions/full-text-search"
-	vector_search "github.com/rodydavis/pocketbase_extensions/vector-search"
-	web_rtc "github.com/rodydavis/pocketbase_extensions/web-rtc"
+	env_config "github.com/rodydavis/pocketbase-plugins/env-config"
+	full_text_search "github.com/rodydavis/pocketbase-plugins/full-text-search"
+	vector_search "github.com/rodydavis/pocketbase-plugins/vector-search"
+	web_rtc "github.com/rodydavis/pocketbase-plugins/web-rtc"
 	"log"
 )
 
