@@ -1,7 +1,33 @@
 # PocketBase Plugins
 
-## Full Text Search
+## ENV Config
 
+### Getting Started
+
+```go
+package main
+
+import (
+    "log"
+    "github.com/pocketbase/pocketbase"
+    env_config "github.com/rodydavis/pocketbase-plugins/env-config"
+)
+
+func main() {
+	app := pocketbase.New()
+
+	err = env_config.Init(app)
+	if err != nil {
+		log.Fatal(err)
+	}
+    
+    if err := app.Start(); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+## Full Text Search
 
 ### Getting Started
 
@@ -21,6 +47,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
     if err := app.Start(); err != nil {
 		log.Fatal(err)
 	}
@@ -53,6 +80,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
     if err := app.Start(); err != nil {
 		log.Fatal(err)
 	}
@@ -63,4 +91,31 @@ func main() {
 
 ```curl
 curl -X GET http://127.0.0.1:8090/api/collections/vectors/records/vector-search?search=Hello
+```
+
+## WebRTC
+
+### Getting Started
+
+```go
+package main
+
+import (
+    "log"
+    "github.com/pocketbase/pocketbase"
+    web_rtc "github.com/rodydavis/pocketbase-plugins/web-rtc"
+)
+
+func main() {
+	app := pocketbase.New()
+
+	err = web_rtc.Init(app)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+    if err := app.Start(); err != nil {
+		log.Fatal(err)
+	}
+}
 ```
