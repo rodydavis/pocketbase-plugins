@@ -17,7 +17,12 @@ import (
 	"github.com/pocketbase/pocketbase/tools/types"
 )
 
-func Init(app *pocketbase.PocketBase, collections ...string) error {
+type VectorCollection struct {
+	Name        string
+	ExtraFields []*schema.SchemaField
+}
+
+func Init(app *pocketbase.PocketBase, collections ...VectorCollection) error {
 	sqlite_vec.Auto()
 
 	client, err := createGoogleAiClient()
@@ -27,9 +32,9 @@ func Init(app *pocketbase.PocketBase, collections ...string) error {
 
 	app.OnAfterBootstrap().Add(func(e *core.BootstrapEvent) error {
 		for _, target := range collections {
-			collection, _ := app.Dao().FindCollectionByNameOrId(target)
+			collection, _ := app.Dao().FindCollectionByNameOrId(target.Name)
 			if collection == nil {
-				err := createVectorCollection(app, target)
+				err := createVectorCollection(app, target.Name, target.ExtraFields...)
 				if err != nil {
 					return err
 				}
@@ -40,8 +45,8 @@ func Init(app *pocketbase.PocketBase, collections ...string) error {
 	app.OnModelAfterCreate().Add(func(e *core.ModelEvent) error {
 		tbl := e.Model.TableName()
 		for _, target := range collections {
-			if tbl == target {
-				err := modelModify(app, target, client, e)
+			if tbl == target.Name {
+				err := modelModify(app, target.Name, client, e)
 				if err != nil {
 					return err
 				}
@@ -52,8 +57,8 @@ func Init(app *pocketbase.PocketBase, collections ...string) error {
 	app.OnModelAfterUpdate().Add(func(e *core.ModelEvent) error {
 		tbl := e.Model.TableName()
 		for _, target := range collections {
-			if tbl == target {
-				err := modelModify(app, target, client, e)
+			if tbl == target.Name {
+				err := modelModify(app, target.Name, client, e)
 				if err != nil {
 					return err
 				}
@@ -64,8 +69,8 @@ func Init(app *pocketbase.PocketBase, collections ...string) error {
 	app.OnModelAfterDelete().Add(func(e *core.ModelEvent) error {
 		tbl := e.Model.TableName()
 		for _, target := range collections {
-			if tbl == target {
-				err := modelDelete(app, target, e)
+			if tbl == target.Name {
+				err := modelDelete(app, target.Name, e)
 				if err != nil {
 					return err
 				}
@@ -74,10 +79,9 @@ func Init(app *pocketbase.PocketBase, collections ...string) error {
 		return nil
 	})
 	app.OnCollectionAfterDeleteRequest().Add(func(e *core.CollectionDeleteEvent) error {
-		target := e.Collection.Name
-		for _, col := range collections {
-			if col == target {
-				err := deleteCollection(app, target)
+		for _, target := range collections {
+			if e.Collection.Name == target.Name {
+				err := deleteCollection(app, target.Name)
 				if err != nil {
 					app.Logger().Error(fmt.Sprint(err))
 					return err

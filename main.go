@@ -22,7 +22,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = vector_search.Init(app, "vectors")
+	err = vector_search.Init(app, vector_search.VectorCollection{Name: "vectors"})
 	if err != nil {
 		log.Fatal(err)
 	}
