@@ -42,7 +42,7 @@ func Init(app *pocketbase.PocketBase, collections ...string) error {
 		target := e.Collection.Name
 		for _, col := range collections {
 			if col == target {
-				err := deleteCollectionFts(app, target)
+				err := deleteCollection(app, target)
 				if err != nil {
 					app.Logger().Error(fmt.Sprint(err))
 					return err
