@@ -206,39 +206,41 @@ func modelModify(app *pocketbase.PocketBase, target string, client *genai.Client
 	title := record.GetString("title")
 	content := record.GetString("content")
 
-	result, err := googleAiEmbedContent(client, genai.TaskTypeRetrievalDocument, title, genai.Text(content))
-	if err != nil {
-		return err
-	}
-
-	vector := ""
-	jsonVec, err := json.Marshal(result)
-	if err != nil {
-		vector = "[]"
-	} else {
-		vector = string(jsonVec)
-	}
-
-	deleteEmbeddingsForRecord(app, target, e)
-
-	{
-		stmt := "INSERT INTO " + target + "_embeddings (embedding) "
-		stmt += "VALUES ({:embedding});"
-		res, err := app.DB().NewQuery(stmt).Bind(dbx.Params{
-			"embedding": vector,
-		}).Execute()
-		if err != nil {
-			return nil
-		}
-		vectorId, err := res.LastInsertId()
+	if content != "" {
+		result, err := googleAiEmbedContent(client, genai.TaskTypeRetrievalDocument, title, genai.Text(content))
 		if err != nil {
 			return err
 		}
-		record.Set("vector_id", vectorId)
-	}
 
-	if err := app.Dao().WithoutHooks().SaveRecord(record); err != nil {
-		return err
+		vector := ""
+		jsonVec, err := json.Marshal(result)
+		if err != nil {
+			vector = "[]"
+		} else {
+			vector = string(jsonVec)
+		}
+
+		deleteEmbeddingsForRecord(app, target, e)
+
+		{
+			stmt := "INSERT INTO " + target + "_embeddings (embedding) "
+			stmt += "VALUES ({:embedding});"
+			res, err := app.DB().NewQuery(stmt).Bind(dbx.Params{
+				"embedding": vector,
+			}).Execute()
+			if err != nil {
+				return nil
+			}
+			vectorId, err := res.LastInsertId()
+			if err != nil {
+				return err
+			}
+			record.Set("vector_id", vectorId)
+		}
+
+		if err := app.Dao().WithoutHooks().SaveRecord(record); err != nil {
+			return err
+		}
 	}
 	return nil
 }
