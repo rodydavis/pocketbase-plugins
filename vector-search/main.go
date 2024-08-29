@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	sqlite_vec "github.com/asg017/sqlite-vec-go-bindings/cgo"
 	"github.com/google/generative-ai-go/genai"
@@ -34,8 +35,9 @@ func Init(app *pocketbase.PocketBase, collections ...VectorCollection) error {
 		for _, target := range collections {
 			collection, _ := app.Dao().FindCollectionByNameOrId(target.Name)
 			if collection == nil {
-				err := createVectorCollection(app, target.Name, target.ExtraFields...)
+				err := createCollection(app, target.Name, target.ExtraFields...)
 				if err != nil {
+					app.Logger().Error(fmt.Sprint(err))
 					return err
 				}
 			}
@@ -48,6 +50,7 @@ func Init(app *pocketbase.PocketBase, collections ...VectorCollection) error {
 			if tbl == target.Name {
 				err := modelModify(app, target.Name, client, e)
 				if err != nil {
+					app.Logger().Error(fmt.Sprint(err))
 					return err
 				}
 			}
@@ -60,6 +63,7 @@ func Init(app *pocketbase.PocketBase, collections ...VectorCollection) error {
 			if tbl == target.Name {
 				err := modelModify(app, target.Name, client, e)
 				if err != nil {
+					app.Logger().Error(fmt.Sprint(err))
 					return err
 				}
 			}
@@ -72,6 +76,7 @@ func Init(app *pocketbase.PocketBase, collections ...VectorCollection) error {
 			if tbl == target.Name {
 				err := modelDelete(app, target.Name, e)
 				if err != nil {
+					app.Logger().Error(fmt.Sprint(err))
 					return err
 				}
 			}
@@ -271,7 +276,7 @@ func deleteEmbeddingsForRecord(app *pocketbase.PocketBase, target string, e *cor
 	return nil
 }
 
-func createVectorCollection(app *pocketbase.PocketBase, target string, extraFields ...*schema.SchemaField) error {
+func createCollection(app *pocketbase.PocketBase, target string, extraFields ...*schema.SchemaField) error {
 	fields := []*schema.SchemaField{
 		{
 			Name: "title",
@@ -286,6 +291,27 @@ func createVectorCollection(app *pocketbase.PocketBase, target string, extraFiel
 			Name: "vector_id",
 			Type: schema.FieldTypeNumber,
 		},
+	}
+	for i, field := range extraFields {
+		options := field.Options
+		if options != nil {
+			relationOption, ok := options.(schema.RelationOptions)
+			if ok {
+				colId := relationOption.CollectionId
+				if strings.HasPrefix(colId, "$$$") {
+					colId = strings.ReplaceAll(colId, "$$$", "")
+					if col, err := app.Dao().FindCollectionByNameOrId(colId); err != nil {
+						app.Logger().Error(fmt.Sprint(err))
+						return err
+					} else {
+						relationOption.CollectionId = col.Id
+						extraFields[i].Options = relationOption
+					}
+				}
+
+			}
+
+		}
 	}
 	fields = append(fields, extraFields...)
 	collection := &models.Collection{
