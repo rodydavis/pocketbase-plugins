@@ -31,6 +31,19 @@ func Init(app *pocketbase.PocketBase, collections ...VectorCollection) error {
 	if err != nil {
 		return err
 	}
+	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
+		for _, target := range collections {
+			collection, _ := app.Dao().FindCollectionByNameOrId(target.Name)
+			if collection == nil {
+				err := createCollection(app, target.Name, target.ExtraFields...)
+				if err != nil {
+					app.Logger().Error(fmt.Sprint(err))
+					return err
+				}
+			}
+		}
+		return nil
+	})
 	app.OnModelAfterCreate().Add(func(e *core.ModelEvent) error {
 		tbl := e.Model.TableName()
 		for _, target := range collections {
@@ -83,16 +96,6 @@ func Init(app *pocketbase.PocketBase, collections ...VectorCollection) error {
 		return nil
 	})
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
-		for _, target := range collections {
-			collection, _ := app.Dao().FindCollectionByNameOrId(target.Name)
-			if collection == nil {
-				err := createCollection(app, target.Name, target.ExtraFields...)
-				if err != nil {
-					app.Logger().Error(fmt.Sprint(err))
-					return err
-				}
-			}
-		}
 		group := e.Router.Group("/api/collections/:collectionIdOrName/records", apis.ActivityLogger(app))
 		group.GET("/vector-search", func(c echo.Context) error {
 			target := c.PathParam("collectionIdOrName")

@@ -67,6 +67,9 @@ func Init(app *pocketbase.PocketBase, collections ...string) error {
 			}
 
 		}
+		return nil
+	})
+	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		group := e.Router.Group("/api/collections/:collectionIdOrName/records", apis.ActivityLogger(app))
 		group.GET("/full-text-search", func(c echo.Context) error {
 			target := c.PathParam("collectionIdOrName")

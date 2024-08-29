@@ -22,7 +22,7 @@ var (
 )
 
 func Init(app *pocketbase.PocketBase) error {
-	app.OnAfterBootstrap().Add(func(e *core.BootstrapEvent) error {
+	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		iceServer, err := createIceServerCollection(app, IceServerCollection)
 		if err != nil {
 			return err
