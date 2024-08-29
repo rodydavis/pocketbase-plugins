@@ -33,7 +33,7 @@ func Init(app *pocketbase.PocketBase, collections ...VectorCollection) error {
 		return err
 	}
 
-	app.OnAfterBootstrap().Add(func(e *core.BootstrapEvent) error {
+	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		for _, target := range collections {
 			collection, _ := app.Dao().FindCollectionByNameOrId(target.Name)
 			if collection == nil {

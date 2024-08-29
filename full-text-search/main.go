@@ -14,7 +14,7 @@ import (
 
 // https://www.sqlite.org/fts5.html#external_content_tables
 func Init(app *pocketbase.PocketBase, collections ...string) error {
-	app.OnAfterBootstrap().Add(func(e *core.BootstrapEvent) error {
+	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		for _, target := range collections {
 			err := createCollectionFts(app, target)
 			if err != nil {
