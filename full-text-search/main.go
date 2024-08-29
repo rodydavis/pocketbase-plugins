@@ -14,17 +14,6 @@ import (
 
 // https://www.sqlite.org/fts5.html#external_content_tables
 func Init(app *pocketbase.PocketBase, collections ...string) error {
-	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
-		for _, target := range collections {
-			err := createCollectionFts(app, target)
-			if err != nil {
-				app.Logger().Error(fmt.Sprint(err))
-				return err
-			}
-
-		}
-		return nil
-	})
 	app.OnCollectionAfterCreateRequest().Add(func(e *core.CollectionCreateEvent) error {
 		target := e.Collection.Name
 		for _, col := range collections {
@@ -70,6 +59,14 @@ func Init(app *pocketbase.PocketBase, collections ...string) error {
 		return nil
 	})
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
+		for _, target := range collections {
+			err := createCollectionFts(app, target)
+			if err != nil {
+				app.Logger().Error(fmt.Sprint(err))
+				return err
+			}
+
+		}
 		group := e.Router.Group("/api/collections/:collectionIdOrName/records", apis.ActivityLogger(app))
 		group.GET("/full-text-search", func(c echo.Context) error {
 			target := c.PathParam("collectionIdOrName")
