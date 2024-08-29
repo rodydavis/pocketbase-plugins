@@ -294,7 +294,7 @@ func createCollection(app *pocketbase.PocketBase, target string, extraFields ...
 	for i, field := range extraFields {
 		options := field.Options
 		if options != nil {
-			relationOption, ok := options.(schema.RelationOptions)
+			relationOption, ok := options.(*schema.RelationOptions)
 			if ok {
 				colId := relationOption.CollectionId
 				if strings.HasPrefix(colId, ColPrefix) {
@@ -318,7 +318,7 @@ func createCollection(app *pocketbase.PocketBase, target string, extraFields ...
 		Type:   models.CollectionTypeBase,
 		Schema: schema.NewSchema(fields...),
 		Indexes: types.JsonArray[string]{
-			"CREATE UNIQUE INDEX idx_" + target + " ON " + target + " (title, content, vector_id);",
+			"CREATE INDEX idx_" + target + " ON " + target + " (title, content);",
 		},
 	}
 
