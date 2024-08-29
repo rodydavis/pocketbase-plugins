@@ -23,6 +23,8 @@ type VectorCollection struct {
 	ExtraFields []*schema.SchemaField
 }
 
+var ColPrefix = "$$$"
+
 func Init(app *pocketbase.PocketBase, collections ...VectorCollection) error {
 	sqlite_vec.Auto()
 
@@ -298,8 +300,8 @@ func createCollection(app *pocketbase.PocketBase, target string, extraFields ...
 			relationOption, ok := options.(schema.RelationOptions)
 			if ok {
 				colId := relationOption.CollectionId
-				if strings.HasPrefix(colId, "$$$") {
-					colId = strings.ReplaceAll(colId, "$$$", "")
+				if strings.HasPrefix(colId, ColPrefix) {
+					colId = strings.ReplaceAll(colId, ColPrefix, "")
 					if col, err := app.Dao().FindCollectionByNameOrId(colId); err != nil {
 						app.Logger().Error(fmt.Sprint(err))
 						return err
