@@ -81,7 +81,30 @@ func Init(app *pocketbase.PocketBase, collections ...string) error {
 		Dir:          migrationsDir,
 	})
 
-	ghupdate.MustRegister(app, app.RootCmd, ghupdate.Config{})
+	// Owner specifies the account owner of the repository (default to "pocketbase").
+	Owner := "pocketbase"
+	if os.Getenv("PB_GH_UPDATE_OWNER") != "" {
+		Owner = os.Getenv("PB_GH_UPDATE_OWNER")
+	}
+
+	// Repo specifies the name of the repository (default to "pocketbase").
+	Repo := "pocketbase"
+	if os.Getenv("PB_GH_UPDATE_REPO") != "" {
+		Repo = os.Getenv("PB_GH_UPDATE_REPO")
+	}
+
+	// ArchiveExecutable specifies the name of the executable file in the release archive
+	// (default to "pocketbase"; an additional ".exe" check is also performed as a fallback).
+	ArchiveExecutable := "pocketbase"
+	if os.Getenv("PB_GH_UPDATE_ARCHIVE_EXECUTABLE") != "" {
+		ArchiveExecutable = os.Getenv("PB_GH_UPDATE_ARCHIVE_EXECUTABLE")
+	}
+
+	ghupdate.MustRegister(app, app.RootCmd, ghupdate.Config{
+		Owner:             Owner,
+		Repo:              Repo,
+		ArchiveExecutable: ArchiveExecutable,
+	})
 
 	app.OnAfterBootstrap().PreAdd(func(e *core.BootstrapEvent) error {
 		app.Dao().ModelQueryTimeout = time.Duration(queryTimeout) * time.Second
